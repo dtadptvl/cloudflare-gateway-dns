@@ -1,0 +1,43 @@
+name: CGPS DNS Update
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "0 3 * * 1"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get CGPS
+        uses: actions/checkout@v6
+        with:
+          repository: mrrfv/cloudflare-gateway-pihole-scripts
+          ref: v1
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "lts/*"
+
+      - name: Install CGPS
+        run: npm ci
+
+      - name: Download allowlist
+        run: npm run download:allowlist
+        env:
+          ALLOWLIST_URLS: ${{ vars.ALLOWLIST_URLS }}
+
+      - name: Download blocklists
+        run: npm run download:blocklist
+        env:
+          BLOCKLIST_URLS: ${{ vars.BLOCKLIST_URLS }}
+
+      - name: Update Cloudflare Gateway
+        run: npm run cloudflare-create
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_LIST_ITEM_LIMIT: ${{ secrets.CLOUDFLARE_LIST_ITEM_LIMIT }}
